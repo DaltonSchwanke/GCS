@@ -4,14 +4,16 @@
 *.pyc
 *.pyo
 *.pyd
+__pycache__/
 
 # Logs
 *.log
 
 # Virtual Environment
 venv/
-__pycache__/
 
-# Other files
+# Environment Files
 .env
-.DS_Store.env
+
+# macOS metadata
+.DS_Store
