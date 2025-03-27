@@ -1,30 +1,42 @@
+import socket
+import json
 import random
 import time
-import json
+from datetime import datetime
+from dotenv import load_dotenv
+import os
 
-# Function to simulate aircraft telemetry
-def generate_telemetry():
-    # Mock data to simulate telemetry (altitude, speed, position)
-    telemetry = {
-        "altitude": random.randint(1000, 35000),
-        "speed": random.randint(200, 600),
-        "latitude": random.uniform(30.0, 60.0),
-        "longitude": random.uniform(-120.0, -60.0),
-        "timestamp": time.time()
+# === Load environment variables from .env ===
+load_dotenv()
+
+PI_IP = os.getenv("PI_IP")
+PI_PORT = int(os.getenv("PI_PORT"))
+
+if not PI_IP or not PI_PORT:
+    raise ValueError("Missing PI_IP or PI_PORT in .env file")
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+def generate_fake_telemetry():
+    return {
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "altitude": round(random.uniform(1000, 10000), 2),    # feet
+        "speed": round(random.uniform(100, 350), 2),          # knots
+        "latitude": round(random.uniform(44.9, 45.0), 6),     # near MN
+        "longitude": round(random.uniform(-93.3, -93.1), 6),  # near MN
+        "heading": round(random.uniform(0, 359), 2)           # degrees
     }
-    return telemetry
 
-# Function to send telemetry data (could be to a server or GCS)
-def send_telemetry(data):
-    # For now, we'll just print the data to simulate sending
-    print(f"Sending telemetry data: {data}")
+print(f"Sending telemetry to {PI_IP}:{PI_PORT} ... (Press Ctrl+C to stop)")
 
-def main():
+try:
     while True:
-        # Generate random telemetry
-        telemetry_data = generate_telemetry()
-        send_telemetry(telemetry_data)
-        time.sleep(1)  # Simulate a delay of 1 second between telemetry updates
-
-if __name__ == "__main__":
-    main()
+        telemetry = generate_fake_telemetry()
+        message = json.dumps(telemetry).encode('utf-8')
+        sock.sendto(message, (PI_IP, PI_PORT))
+        print(f"[SENT] {telemetry}")
+        time.sleep(1)
+except KeyboardInterrupt:
+    print("\nTransmission stopped by user.")
+finally:
+    sock.close()
