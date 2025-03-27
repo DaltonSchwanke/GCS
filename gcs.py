@@ -1,45 +1,32 @@
-import time
+import socket
 import json
+from dotenv import load_dotenv
+import os
 
-# Example function to simulate receiving telemetry data
-def receive_telemetry():
-    
-    # Mock Data for Testing GCS File
-    data = {
-        "altitude": 10000, 
-        "speed": 250,
-        "latitude": 45.0,
-        "longitude": -93.0,
-        "timestamp": time.time()
-    }
-    return data
+# === Load environment variables from .env ===
+load_dotenv()
 
+PI_IP = os.getenv("PI_IP")        # This should match the IP used in simulate_aircraft
+PI_PORT = int(os.getenv("PI_PORT"))
 
+if not PI_IP or not PI_PORT:
+    raise ValueError("Missing PI_IP or PI_PORT in .env file")
 
-# Function to log telemetry data
-def log_telemetry(data):
-    with open("telemetry_log.json", "a") as log_file:
-        log_file.write(json.dumps(data) + "\n")
+# === Set up the UDP server socket ===
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind((PI_IP, PI_PORT))
 
+print(f"Listening for telemetry on {PI_IP}:{PI_PORT}...")
 
-
-# Function to process and display telemetry data
-def display_telemetry(data):
-    print(f"Altitude: {data['altitude']} ft")
-    print(f"Speed: {data['speed']} km/h")
-    print(f"Latitude: {data['latitude']}°")
-    print(f"Longitude: {data['longitude']}°")
-    print(f"Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(data['timestamp']))}")
-    print("-" * 40)
-
-
-def main():
+try:
     while True:
-        telemetry_data = receive_telemetry()
-        log_telemetry(telemetry_data)
-        display_telemetry(telemetry_data)
-        time.sleep(1) 
-
-
-if __name__ == "__main__":
-    main()
+        data, addr = sock.recvfrom(1024)  # Buffer size = 1024 bytes
+        try:
+            telemetry = json.loads(data.decode('utf-8'))
+            print(f"[RECEIVED from {addr}] → {json.dumps(telemetry, indent=2)}")
+        except json.JSONDecodeError:
+            print(f"[WARNING] Received non-JSON data: {data}")
+except KeyboardInterrupt:
+    print("\nTelemetry receiver stopped.")
+finally:
+    sock.close()
