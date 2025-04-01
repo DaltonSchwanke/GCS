@@ -1,22 +1,48 @@
-<!-- map.html -->
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
   <title>Aircraft Tracker</title>
   <style>
-    html, body, #map { height: 100%; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+
     #telemetry-panel {
       position: absolute;
       top: 10px;
       right: 10px;
+      width: 200px;
       background: rgba(0, 0, 0, 0.7);
       color: white;
       padding: 10px;
-      font-family: sans-serif;
       font-size: 14px;
       border-radius: 5px;
       z-index: 999;
+      display: none;
+    }
+
+    #loading-message {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(to bottom, #1c1f26, #3e3e42);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      z-index: 1000;
     }
   </style>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -30,6 +56,7 @@
     <p><strong>Latitude:</strong> <span id="lat">--</span></p>
     <p><strong>Longitude:</strong> <span id="lon">--</span></p>
   </div>
+  <div id="loading-message">Looking for devices to connect to...</div>
 
   <script>
     const map = L.map('map').setView([0, 0], 2);
@@ -38,8 +65,15 @@
     }).addTo(map);
 
     const marker = L.marker([0, 0]).addTo(map);
+    let linked = false;
 
     function updateMarker(lat, lon, speed, angle) {
+      if (!linked) {
+        linked = true;
+        document.getElementById('loading-message').style.display = 'none';
+        document.getElementById('telemetry-panel').style.display = 'block';
+      }
+
       marker.setLatLng([lat, lon]);
       map.setView([lat, lon]);
 
